@@ -17,21 +17,26 @@ jobs:
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
+        username: ec2-user
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          cd python-docker-app || git clone https://github.com/jaitrinity/python-docker-app.git
+          set -e
+
+          if [ ! -d "python-docker-app" ]; then
+            git clone https://github.com/jaitrinity/python-docker-app.git
+          fi
+
           cd python-docker-app
           git pull origin main
-          
+
           docker stop flask-app || true
           docker rm flask-app || true
-          
-          docker build -t python-docker-app .
-          
+          docker rmi python-docker-app || true
+
+          docker build --no-cache -t python-docker-app .
+
           docker run -d \
             --restart unless-stopped \
             -p 5000:5000 \
             --name flask-app \
             python-docker-app
-
