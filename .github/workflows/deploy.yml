@@ -1,0 +1,37 @@
+name: Deploy Python App to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd python-docker-app || git clone https://github.com/jaitrinity/python-docker-app.git
+          cd python-docker-app
+          git pull origin main
+          
+          docker stop flask-app || true
+          docker rm flask-app || true
+          
+          docker build -t python-docker-app .
+          
+          docker run -d \
+            --restart unless-stopped \
+            -p 5000:5000 \
+            --name flask-app \
+            python-docker-app
+
